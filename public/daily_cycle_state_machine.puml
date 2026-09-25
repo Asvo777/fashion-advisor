@@ -1,0 +1,37 @@
+@startuml DailyCycleStateMachine
+
+[*] --> DailyCycle
+
+state DailyCycle {
+
+  state RecommendationPool {
+    [*] --> Generating
+    Generating --> Available : batchGenerated\n(<= 10 outfits, weather + preferences + WearLog considered)
+    Available --> Swiping : userOpensRecommendations
+    Swiping --> Swiping : swipeRight(outfit)\n/ status=LIKED, addToLikedPool, recordPreferenceSignal
+    Swiping --> Swiping : swipeLeft(outfit)\n/ status=DISLIKED, recordPreferenceSignal
+    Swiping --> Exhausted : allOutfitsSwiped [no UNSEEN outfits remain]
+  }
+
+  note right of RecommendationPool
+    Custom outfits can be created from the
+    user's clothing library at any time.
+    They must follow the same composition
+    rules as recommended outfits, and are
+    added directly to the liked pool.
+  end note
+
+  RecommendationPool --> RecommendationPool : createCustomOutfit(fromLibrary)\n[followsCompositionRules] / status=LIKED, addToLikedPool
+
+  --
+
+  state AvatarOutfit {
+    [*] --> NoOutfitSelected
+    NoOutfitSelected --> OutfitWorn : selectOutfit(likedOrCustomOutfit)\n/ status=SELECTED_AS_OOTD
+    OutfitWorn --> OutfitWorn : switchOutfit(anotherLikedOrCustomOutfit)\n[anytime before midnight]
+  }
+}
+
+DailyCycle --> DailyCycle : midnight\n/ archive current OOTD outfit to WearLog(type=OOTD),\narchive all outfits with status=LIKED to WearLog(type=LIKED),\ndelete WearLog entries older than 7 days,\nclear avatar (AvatarOutfit -> NoOutfitSelected),\nreset RecommendationPool -> Generating\n(new batch uses updated UserPreferenceProfile\nand deprioritizes items worn yesterday)
+
+@enduml

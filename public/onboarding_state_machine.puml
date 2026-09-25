@@ -1,0 +1,30 @@
+@startuml OnboardingStateMachine
+
+[*] --> Unauthenticated
+
+Unauthenticated --> Authenticating : signUp / signIn
+Authenticating --> Unauthenticated : authenticationFailed
+Authenticating --> ProfileSetup : accountCreated
+
+state ProfileSetup {
+  [*] --> EnteringProfile
+  EnteringProfile --> EnteringProfile : submitField(age | gender | bodyType | location)\n[profileIncomplete]
+}
+ProfileSetup --> ClothesSetup : profileCompleted\n[age AND gender AND bodyType AND location all set]
+
+state ClothesSetup {
+  [*] --> AddingClothes
+  AddingClothes --> AddingClothes : addClothingItem\n[minimumNotMet]
+}
+note right of ClothesSetup
+  Minimum required before proceeding:
+  >= 1 InnerTop
+  AND >= 1 Bottom
+  AND >= 1 OuterFeet
+end note
+
+ClothesSetup --> OnboardingComplete : minimumClothesMet\n[hasInnerTop AND hasBottom AND hasOuterFeet]
+
+OnboardingComplete --> [*]
+
+@enduml
