@@ -1,16 +1,32 @@
 import { useEffect, useState, type SubmitEvent } from 'react'
 import type { components } from '../api-types'
-import type { User } from '@supabase/supabase-js'
 import { signOut } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 type ClothingItem = components['schemas']['ClothingItem']
 type ClothingItemCreate = components['schemas']['ClothingItemCreate']
 
-function AuthenticatedApp(props: { user: User }) {
+async function getAccessToken() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession()
+
+  if (error) {
+    throw error
+  }
+
+  if (!session) {
+    throw new Error('You are not signed in')
+  }
+
+  return session.access_token
+}
+
+function AuthenticatedApp() {
   const [items, setItems] = useState<ClothingItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<ClothingItemCreate>({
-    user_id: 'PUT_YOUR_USER_ID_HERE',
     category: 'INNER_TOP',
     name: '',
     main_color: '',
@@ -21,19 +37,35 @@ function AuthenticatedApp(props: { user: User }) {
   })
 
   const [saving, setSaving] = useState(false)
-  const [user, setUser] = useState<User>(props.user)
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/clothing-items')
-      .then((response) => {
+    async function loadClothingItems() {
+      try {
+        const accessToken = await getAccessToken()
+        const response = await fetch(
+          'http://127.0.0.1:8000/api/clothing-items',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        )
+
         if (!response.ok) {
-          throw new Error('Could not load clothing items')
+          throw new Error(await response.text())
         }
 
-        return response.json()
-      })
-      .then(setItems)
-      .catch((error: Error) => setError(error.message))
+        setItems(await response.json())
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Could not load clothing items',
+        )
+      }
+    }
+
+    loadClothingItems()
   }, [])
 
 
@@ -47,12 +79,14 @@ function AuthenticatedApp(props: { user: User }) {
     setError(null)
 
     try {
+      const accessToken = await getAccessToken()
       const response = await fetch(
         'http://127.0.0.1:8000/api/clothing-items',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(form),
         },

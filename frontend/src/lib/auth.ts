@@ -1,5 +1,22 @@
 import { supabase } from './supabase'
 
+export async function getAccessToken() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession()
+
+  if (error) {
+    throw error
+  }
+
+  if (!session) {
+    throw new Error('You are not signed in')
+  }
+
+  return session.access_token
+}
+
 export async function register(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,

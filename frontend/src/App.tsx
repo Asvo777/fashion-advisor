@@ -1,53 +1,34 @@
-import { useEffect, useState, type SubmitEvent } from 'react'
+import { useEffect, useState } from 'react'
 import type { components } from './api-types'
 import type { User } from '@supabase/supabase-js'
+import { getAccessToken } from './lib/auth'
 import { supabase } from './lib/supabase'
 import AuthenticatedApp from './pages/AuthenticatedApp'
 import LoginPage from './pages/LoginPage'
+import ProfileSetupPage from './pages/ProfileSetupPage'
 
-type ClothingItem = components['schemas']['ClothingItem']
-type ClothingItemCreate = components['schemas']['ClothingItemCreate']
-
+type UserProfile = components['schemas']['UserProfile']
 
 function App() {
-  const [items, setItems] = useState<ClothingItem[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<ClothingItemCreate>({
-    user_id: 'PUT_YOUR_USER_ID_HERE',
-    category: 'INNER_TOP',
-    name: '',
-    main_color: '',
-    pattern: null,
-    weather_bias: 'ANY',
-    size: 'PERFECT',
-    is_available: true,
-  })
-
-  const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [checkingProfile, setCheckingProfile] = useState(false)
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/clothing-items')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Could not load clothing items')
-        }
-
-        return response.json()
-      })
-      .then(setItems)
-      .catch((error: Error) => setError(error.message))
-  }, [])
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-    })
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      setProfile(null)
+    })
+
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        setError(error.message)
+        return
+      }
+
       setUser(session?.user ?? null)
     })
 
@@ -56,53 +37,64 @@ function App() {
     }
   }, [])
 
-  if (error) {
-    return <p>{error}</p>
-  }
+  useEffect(() => {
+    if (!user) {
+      setProfile(null)
+      return
+    }
 
-  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setSaving(true)
-    setError(null)
+    async function loadProfile() {
+      setCheckingProfile(true)
 
-    try {
-      const response = await fetch(
-        'http://127.0.0.1:8000/api/clothing-items',
-        {
+      try {
+        const accessToken = await getAccessToken()
+        const response = await fetch('http://127.0.0.1:8000/api/users', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify(form),
-        },
-      )
+        })
 
-      if (!response.ok) {
-        throw new Error(await response.text())
+        if (!response.ok) {
+          throw new Error(await response.text())
+        }
+
+        setProfile(await response.json())
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : 'Could not load profile',
+        )
+      } finally {
+        setCheckingProfile(false)
       }
-
-      const createdItem: ClothingItem = await response.json()
-
-      setItems((currentItems) => [...currentItems, createdItem])
-
-      setForm((currentForm) => ({
-        ...currentForm,
-        name: '',
-        main_color: '',
-        pattern: null,
-      }))
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not save item')
-    } finally {
-      setSaving(false)
     }
+
+    loadProfile()
+  }, [user])
+
+  if (error) {
+    return <p>{error}</p>
   }
 
   if (!user) {
     return <LoginPage />
   }
+
+  if (checkingProfile || !profile) {
+    return <p>Loading your profile...</p>
+  }
+
+  if (profile.age === null || profile.gender === null || profile.body_type === null) {
+    return (
+      <ProfileSetupPage
+        user={user}
+        onComplete={setProfile}
+      />
+    )
+  }
+
   return (
-    <AuthenticatedApp user={user} />
+    <AuthenticatedApp />
   )
 }
 

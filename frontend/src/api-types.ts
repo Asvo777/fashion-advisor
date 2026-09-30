@@ -22,6 +22,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create User Profile */
+        post: operations["create_user_profile_api_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{user_id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User Profile */
+        patch: operations["update_user_profile_api_users__user_id__profile_patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -44,17 +78,17 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * BodyType
+         * @enum {string}
+         */
+        BodyType: "RECTANGLE" | "INVERTED_TRIANGLE" | "PEAR" | "APPLE" | "HOURGLASS";
+        /**
          * ClothingCategory
          * @enum {string}
          */
         ClothingCategory: "HEAD" | "INNER_TOP" | "OUTER_TOP" | "BOTTOM" | "INNER_FEET" | "OUTER_FEET" | "SPECIAL_ITEM";
         /** ClothingItem */
         ClothingItem: {
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
             category: components["schemas"]["ClothingCategory"];
             /** Name */
             name: string;
@@ -71,6 +105,11 @@ export interface components {
              * @default true
              */
             is_available: boolean;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
             /**
              * Id
              * Format: uuid
@@ -89,11 +128,6 @@ export interface components {
         };
         /** ClothingItemCreate */
         ClothingItemCreate: {
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
             category: components["schemas"]["ClothingCategory"];
             /** Name */
             name: string;
@@ -116,10 +150,50 @@ export interface components {
          * @enum {string}
          */
         ClothingSize: "SLIM" | "SMALL" | "PERFECT" | "TALL" | "BAGGY";
+        /**
+         * Gender
+         * @enum {string}
+         */
+        Gender: "MALE" | "FEMALE" | "OTHER";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** UserProfile */
+        UserProfile: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Age */
+            age: number | null;
+            gender: components["schemas"]["Gender"] | null;
+            body_type: components["schemas"]["BodyType"] | null;
+            /** Location Id */
+            location_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** UserProfileUpdate */
+        UserProfileUpdate: {
+            /** Age */
+            age?: number | null;
+            gender?: components["schemas"]["Gender"] | null;
+            body_type?: components["schemas"]["BodyType"] | null;
+            /** Location Id */
+            location_id?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -188,6 +262,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClothingItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_profile_api_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+        };
+    };
+    update_user_profile_api_users__user_id__profile_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfile"];
                 };
             };
             /** @description Validation Error */

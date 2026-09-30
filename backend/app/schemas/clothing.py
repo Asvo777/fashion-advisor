@@ -42,6 +42,7 @@ class ClothingItemCreate(BaseModel):
 class ClothingItem(ClothingItemCreate):
 	model_config = ConfigDict(from_attributes=True)
 
+	user_id: UUID
 	id: UUID
 	created_at: datetime
 	updated_at: datetime
