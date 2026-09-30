@@ -17,3 +17,4 @@ app.include_router(clothing_router)
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+

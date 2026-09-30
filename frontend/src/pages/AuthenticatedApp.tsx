@@ -1,13 +1,14 @@
 import { useEffect, useState, type SubmitEvent } from 'react'
-import type { components } from './api-types'
+import type { components } from '../api-types'
+import type { User } from '@supabase/supabase-js'
+import { signOut } from '../lib/auth'
 
 type ClothingItem = components['schemas']['ClothingItem']
 type ClothingItemCreate = components['schemas']['ClothingItemCreate']
 
-function App() {
+function AuthenticatedApp(props: { user: User }) {
   const [items, setItems] = useState<ClothingItem[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<ClothingItemCreate>({
     user_id: 'PUT_YOUR_USER_ID_HERE',
     category: 'INNER_TOP',
@@ -20,6 +21,7 @@ function App() {
   })
 
   const [saving, setSaving] = useState(false)
+  const [user, setUser] = useState<User>(props.user)
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/api/clothing-items')
@@ -33,6 +35,7 @@ function App() {
       .then(setItems)
       .catch((error: Error) => setError(error.message))
   }, [])
+
 
   if (error) {
     return <p>{error}</p>
@@ -76,14 +79,19 @@ function App() {
     }
   }
 
+  const handleSignOut = () => {
+    signOut()
+  }
+
   return (
+
     <main>
       <h1>My wardrobe</h1>
 
       {items.length === 0 ? (
         <p>No clothing items yet.</p>
       ) : (
-        <ul>
+        <ul>  
           {items.map((item) => (
             <li key={item.id}>
               {item.name} - {item.category}
@@ -174,8 +182,12 @@ function App() {
           {saving ? 'Saving...' : 'Add clothing item'}
         </button>
       </form>
+
+      <button type="button" onClick={handleSignOut}>
+        Sign out
+      </button>
     </main>
   )
 }
 
-export default App
+export default AuthenticatedApp

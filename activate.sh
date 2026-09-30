@@ -105,13 +105,10 @@ echo "========================================"
 echo "🌐 Starting frontend"
 echo "========================================"
 
-# We are currently:
-# project/backend
-#
-# Go to:
-# project/
-cd ../ || {
-    echo "❌ Failed to change directory to frontend/project root"
+# We are currently in project/backend.
+# Go to project/frontend.
+cd ../frontend || {
+    echo "❌ Failed to change directory to frontend"
     exit 1
 }
 
@@ -209,6 +206,7 @@ echo "========================================"
 #
 # Go into:
 # project/backend
+cd ../
 cd backend || {
     echo "❌ Failed to change directory to backend"
     exit 1

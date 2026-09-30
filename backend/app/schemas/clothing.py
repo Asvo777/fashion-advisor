@@ -30,7 +30,6 @@ class ClothingSize(StrEnum):
 
 
 class ClothingItemCreate(BaseModel):
-	user_id: UUID
 	category: ClothingCategory
 	name: str
 	main_color: str
