@@ -18,6 +18,7 @@ def create_user_profile(current_user=Depends(get_current_user)):
             "id": str(current_user.id),
             "email": current_user.email,
         })
+        .select("*")
         .execute()
     )
 
@@ -42,11 +43,10 @@ def update_user_profile(
         .update(profile.model_dump(exclude_unset=True, mode="json"))
         .eq("id", str(current_user.id))
         .select("*")
-        .single()
         .execute()
     )
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    return result.data
+    return result.data[0]
