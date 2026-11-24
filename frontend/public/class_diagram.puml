@@ -1,0 +1,186 @@
+@startuml ClassDiagram
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BodyType {
+  RECTANGLE
+INVERTED_TRIANGLE
+PEAR
+APPLE
+HOURGLASS'
+}
+
+enum WeatherBias {
+  HOT
+  COLD
+  ANY
+}
+
+enum ClothingSize {
+  SLIM
+  SMALL
+  PERFECT
+  TALL
+  BAGGY
+}
+
+enum WeatherCondition {
+  SUNNY
+  RAINY
+  SNOWY
+  HOT
+  COLD
+}
+
+enum OutfitSource {
+  RECOMMENDED
+  CUSTOM
+}
+
+enum OutfitStatus {
+  UNSEEN
+  LIKED
+  DISLIKED
+  SELECTED_AS_OOTD
+}
+
+enum WearLogType {
+  OOTD
+  LIKED
+}
+
+class User {
+  -userId: UUID
+  -age: int
+  -gender: Gender
+  -bodyType: BodyType
+}
+
+class Location {
+  -city: String
+}
+
+class Weather {
+  -temperature: float
+  -condition: WeatherCondition
+  -date: Date
+}
+note right of Weather
+  Fetched from external weather API
+  for the User's Location, at the
+  current date.
+end note
+
+abstract class ClothingItem {
+  -itemId: UUID
+  -name: String
+  -mainColor: String
+  -pattern: String
+  -weatherBias: WeatherBias
+  -size: ClothingSize
+}
+
+class HeadWear
+class InnerTop
+class OuterTop
+class Bottom
+class InnerFeet
+class OuterFeet
+class SpecialItem
+
+ClothingItem <|-- HeadWear
+ClothingItem <|-- InnerTop
+ClothingItem <|-- OuterTop
+ClothingItem <|-- Bottom
+ClothingItem <|-- InnerFeet
+ClothingItem <|-- OuterFeet
+ClothingItem <|-- SpecialItem
+
+note right of OuterTop
+  Must be worn over an InnerTop.
+  Cannot be placed directly on skin.
+end note
+
+note right of SpecialItem
+  Spans Top + Bottom only
+  (e.g. dress, overalls, costume).
+end note
+
+class Outfit {
+  -outfitId: UUID
+  -createdAt: DateTime
+  -source: OutfitSource
+  -status: OutfitStatus
+}
+note right of Outfit
+  Composition rule (enforced in logic,
+  not expressible as pure cardinality):
+    EITHER (1 Bottom + 1..2 InnerTop)
+    OR     (1 SpecialItem)
+    PLUS   1 OuterFeet (required)
+  OuterTop: optional, required if cold
+            or if algorithm favors it
+  InnerFeet: optional, present by default,
+             weather + algorithm dependent
+  HeadWear: optional, default none
+end note
+
+class WearLog {
+  -logId: UUID
+  -type: WearLogType
+  -date: Date
+  -expiresAt: Date
+}
+note right of WearLog
+  Retention: entries older than
+  7 days are deleted.
+end note
+
+class UserPreferenceProfile {
+  -profileId: UUID
+  -preferenceWeights: Map
+}
+note right of UserPreferenceProfile
+  Future feature (Release 3).
+  Learned from Outfit.status history
+  (LIKED / DISLIKED signals).
+end note
+
+class RecommendationEngine {
+  +generateDailyOutfits(user, weather, preferences, wearLog): List<Outfit>
+}
+note right of RecommendationEngine
+  Deprioritizes ClothingItem instances
+  found in yesterday's WearLog entries.
+end note
+
+User "1" -- "1" Location
+User "1" -- "0..1" UserPreferenceProfile
+User "1" -- "*" ClothingItem : owns
+User "1" -- "*" Outfit : has
+User "1" -- "*" WearLog : history
+
+Location "1" ..> Weather : fetched for >
+
+Outfit "0..1" -- HeadWear
+Outfit "0..2" -- InnerTop
+Outfit "0..1" -- OuterTop
+Outfit "0..1" -- Bottom
+Outfit "0..1" -- SpecialItem
+Outfit "0..1" -- InnerFeet
+Outfit "1" -- OuterFeet
+
+WearLog "*" --> "1" Outfit : archives
+
+RecommendationEngine ..> User
+RecommendationEngine ..> Weather
+RecommendationEngine ..> UserPreferenceProfile
+RecommendationEngine ..> WearLog
+RecommendationEngine ..> ClothingItem
+RecommendationEngine ..> Outfit : creates
+
+@enduml
